@@ -2,16 +2,17 @@ from typing import List, Union
 
 
 class Artwork:
-    def __init__(self, id: int, title: str, creators: Union[str, List], location: str = "Depot", width_cm: int = None, height_cm: int = None,
+    def __init__(self, id: int, title: str, creator_ids: Union[int, List], building_id: int = 1, width_cm: int = None, height_cm: int = None,
                  depth_cm: int = None, year_of_creation: int = None, art_type: str = None, art_style: str = None, is_lent_out: bool = False,
                  category: int = None):
         self.id = id
         self.title = title
-        self.creators = creators  # many-to-many  # TODO: change to creator_id
-        self.location = location  # many-to-one  (many artworks per location)  # TODO: change to building_id
+        self.creator_ids = creator_ids  # many-to-many
+        self.building_id = building_id  # many-to-one  (many artworks per location)
         self.width_cm = width_cm
         self.height_cm = height_cm
         self.depth_cm = depth_cm
+        self.year_of_creation = year_of_creation
         self.art_type = art_type
         self.art_style = art_style
         self.is_lent_out = is_lent_out  # not exactly a property of an artwork, but important for app
@@ -32,7 +33,7 @@ class Artist:
 class MunicipalBuilding:
     def __init__(self, id: int, name: str, address: str):
         self.id = id
-        self.name = name
+        self.name = name  # e.g. "Depot" for id==1
         self.address = address
 
 
