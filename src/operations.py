@@ -1,6 +1,75 @@
 from src.models import Artwork, Loan, Reservation
 from datetime import datetime
 
+from src.common import (
+    get_all_days_between_dates,
+)
+
+
+class ArtBrowserHandler:
+    """
+    Interface between user/view and data/models for gathering information about artworks and artists.
+    """
+    def __init__(self):
+        self.artwork_information_checker = ArtworkInformationChecker()
+
+    def style_filter(self):
+        pass
+
+    def dimension_filter(self):
+        pass
+
+
+class ReservationHandler:
+    """
+    Interface between user/view and data/models for making reservations.
+    """
+    def __init__(self):
+        self.availability_checker = AvailabilityChecker()
+
+    def is_available_during_time_interval(self, artwork_obj, loan_obj, reservation_obj, start_dtt=None, end_dtt=None) -> bool:
+        time_interval = get_all_days_between_dates(start_date=start_dtt, end_date=end_dtt)
+        return all(self.availability_checker.is_artwork_available_on_date(artwork_obj=artwork_obj,
+                                                                          loan_obj=loan_obj,
+                                                                          reservation_obj=reservation_obj,
+                                                                          dt_of_interest=dtt) for dtt in time_interval)
+
+    def create_reservation(self):
+        is_available = self.is_available_during_time_interval(artwork_obj, loan_obj, reservation_obj, start_dtt=None, end_dtt=None)
+        is_allowed_at_location = self.availability_checker.is_artwork_available_at_location(artwork_obj, location_of_interest)
+
+        if is_available & is_allowed_at_location:
+            pass  # if not reserved AND location is allowed, INSERT reservation if user wants to.
+
+    def undo_reservation(self):
+        pass  # user should be able to UPDATE/DELETE a previously made reservation
+
+    def is_suitable_location_available_at_dtt_and_building(self):
+        pass  # the selected artwork should be both available AND should fit at that location
+
+    def close_reservation(self):
+        pass  # a reservation should be UPDATED once the loan starts. This will reduce the number of reservations by 1
+
+    def send_reminder(self):  # TODO: move to separate UserInteractor class
+        pass  # a reminder should be sent to the user making the reservation x days before the reservation/loan starts
+
+
+class LoanHandler:
+    def __init__(self):
+        pass
+
+    def create_loan(self):
+        pass  # INSERT of loan (including start_dtt+end_dtt) should follow directly after a reservation has been closed
+
+    def close_loan(self):
+        pass  # UPDATE loan transaction once artwork has been returned AND current_dtt >= end_dtt
+
+    def artwork_has_been_returned(self):
+        pass  # check that the user indeed returned the relevant artwork on (or before) the relevant end_dtt
+
+    def send_reminder(self):  # TODO: move to separate UserInteractor class
+        pass  # a reminder should be sent to the user making the reservation x days before the loan ends
+
 
 class ArtworkInformationChecker:
     """
@@ -44,7 +113,7 @@ class AvailabilityChecker:
 
     @staticmethod
     def _get_current_location(artwork_obj: Artwork):
-        return artwork_obj.location
+        return artwork_obj.building_id
 
     @staticmethod
     def _get_current_availability(artwork_obj: Artwork):
@@ -61,23 +130,23 @@ class AvailabilityChecker:
             return (dt_of_interest >= loan_obj.start_dt) & (dt_of_interest <= loan_obj.end_dt)
         # TODO: use reservation_obj to warn for future reservations?
 
-    def is_artwork_available_at_location(self, artwork_obj: Artwork, location_of_interest: str):
+    def is_artwork_available_at_location(self, artwork_obj: Artwork, location_of_interest: int):
         if self._get_category(artwork_obj=artwork_obj) == 1:
             return self._get_current_location(artwork_obj=artwork_obj) == location_of_interest
         return True
 
 
 ##############
-some_book = Artwork(id=42, title="Zaphod Beeblebrox", creators="Douglas Adams", width_cm=70, height_cm=100, depth_cm=5)
-some_painting = Artwork(id=1, title="Nachtwacht", creators="Rembrandt", art_type="painting", width_cm=600, height_cm=200)
+some_book = Artwork(id=42, title="Zaphod Beeblebrox", creator_ids="Douglas Adams", width_cm=70, height_cm=100, depth_cm=5)
+some_painting = Artwork(id=1, title="Nachtwacht", creator_ids="Rembrandt", art_type="painting", width_cm=600, height_cm=200)
 artwork_info_checker = ArtworkInformationChecker()
 
 print(artwork_info_checker.does_artwork_fit(some_book, location_width_cm=80, location_height_cm=200, location_depth_cm=10))
 print(artwork_info_checker.does_artwork_fit(some_painting, location_width_cm=80, location_height_cm=200, location_depth_cm=10))
 
 
-some_sculpture = Artwork(id=2, title="Le Penseur", creators="Rodin", art_type="sculpture", width_cm=75, height_cm=185, depth_cm=100,
-                         category=1, location="Stadhuis")
+some_sculpture = Artwork(id=2, title="Le Penseur", creator_ids="Rodin", art_type="sculpture", width_cm=75, height_cm=185, depth_cm=100,
+                         category=1, building_id="Stadhuis")
 artwork_availability_checker = AvailabilityChecker()
 print(artwork_availability_checker.is_artwork_available_at_location(artwork_obj=some_sculpture, location_of_interest="home"))
 print(artwork_availability_checker.is_artwork_available_at_location(artwork_obj=some_sculpture, location_of_interest="Stadhuis"))
